@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Adds buku bookmark using URL copied to clipboard
+
+$HOME/dev/tools/buku-utils/_bukuaddbase $(xclip -selection clipboard -o)

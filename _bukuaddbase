@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Adds buku bookmark and sets time_added field in database
+# $1 - URL
+# $2 - Tags
+
+new_id=$(buku --nc -a $1 $2 | sed -n 1p | cut -d '.' -f 1)
+sql_command="update bookmarks set time_added ='$(date '+%Y-%m-%d %H:%M:%S')' where id = ${new_id};"
+echo $sql_command | sqlite3 $HOME/.local/share/buku/bookmarks.db

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Adds buku bookmark using URL copied to clipboard. Prompts user for tags
+# $1 - Any additional tags to add
+
+printf "Tags: "
+read tags
+$HOME/dev/tools/buku-utils/_bukuaddbase $(xclip -selection clipboard -o) "$tags,$1"
+
