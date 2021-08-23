@@ -1,9 +1,58 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
-# Adds buku bookmark and sets time_added field in database
+# Adds buku bookmark and sets time_added field in database. Also does some cleaning of metadata
 # $1 - URL
 # $2 - Tags
 
-new_id=$(buku --nc -a $1 $2 | sed -n 1p | cut -d '.' -f 1)
-sql_command="update bookmarks set time_added ='$(date '+%Y-%m-%d %H:%M:%S')' where id = ${new_id};"
-echo $sql_command | sqlite3 $HOME/.local/share/buku/bookmarks.db
+import sys
+import subprocess
+import re
+import sqlite3
+import os
+from datetime import datetime
+
+if len(sys.argv) < 2:
+	print("No URL given")
+	sys.exit(1)
+
+url = sys.argv[1]
+tags = sys.argv[2] if len(sys.argv) > 2 else ""
+
+
+# url=${1#"GitHub - "}
+out = subprocess.check_output(["buku", "--nc", "-a", url, tags]).decode("utf-8")
+new_id = re.match(r"[0-9]+", out)
+if new_id:
+    new_id = new_id.group()
+    print(f"Added with id {new_id}")
+else:
+    print("Bad buku -a output")
+    sys.exit(1)
+
+con = sqlite3.connect(os.environ["HOME"] + "/.local/share/buku/bookmarks.db")
+cur = con.cursor()
+
+# Potentially clean metadata fetched from <meta> tags
+title, desc = cur.execute(f"select metadata,desc from bookmarks where id = {new_id}").fetchone()
+wipe_regex = [
+    r"^github - ", # GH tends to prefix page title with 'GitHub - '
+    r"\. contribute to .*$", # GH tends to add a contribute to message
+    r" - github - .*$" # sometimes GH repeats the repo description
+]
+strings_to_clean = [title, desc]
+for wp in wipe_regex:
+    for i in range(len(strings_to_clean)):
+        m = re.search(wp, strings_to_clean[i],re.IGNORECASE)
+        if m:
+            strings_to_clean[i] = strings_to_clean[i].replace(m.group(), "")
+    
+title, desc = strings_to_clean
+current_time = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
+sql_command = f"update bookmarks set time_added ='{current_time}', metadata = ?, desc = ? where id = {new_id}"
+
+
+cur.execute(sql_command, (title,desc))
+cur.close()
+con.commit()
+con.close()
+
