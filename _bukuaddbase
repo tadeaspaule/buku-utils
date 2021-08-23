@@ -18,8 +18,6 @@ if len(sys.argv) < 2:
 url = sys.argv[1]
 tags = sys.argv[2] if len(sys.argv) > 2 else ""
 
-
-# url=${1#"GitHub - "}
 out = subprocess.check_output(["buku", "--nc", "-a", url, tags]).decode("utf-8")
 new_id = re.match(r"[0-9]+", out)
 if new_id:
@@ -49,7 +47,6 @@ for wp in wipe_regex:
 title, desc = strings_to_clean
 current_time = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
 sql_command = f"update bookmarks set time_added ='{current_time}', metadata = ?, desc = ? where id = {new_id}"
-
 
 cur.execute(sql_command, (title,desc))
 cur.close()
