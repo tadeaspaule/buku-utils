@@ -16,7 +16,22 @@ if len(sys.argv) < 2:
 	sys.exit(1)
 
 url = sys.argv[1]
+url_without_prefix = url
+prefixes = ["https://","http://","www.","m."]
+for p in prefixes:
+    if url_without_prefix.startswith(p):
+        url_without_prefix = url_without_prefix[len(p):]
 tags = sys.argv[2] if len(sys.argv) > 2 else ""
+
+autotag_path = os.environ["HOME"] + "/.config/buku/autotag"
+if os.path.isfile(autotag_path):
+    with open(autotag_path, "r") as f:
+        for line in f:
+            parts = line.split(" ")
+            autotag_url, autotag_tags = parts[0], "".join(parts[1:])
+            if url_without_prefix.startswith(autotag_url):
+                tags += "," + autotag_tags
+                break
 
 out = subprocess.check_output(["buku", "--nc", "-a", url, tags]).decode("utf-8")
 new_id = re.match(r"[0-9]+", out)
